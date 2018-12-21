@@ -22,5 +22,6 @@ it will produce header and x86 lib in root of detours directory.
 Build with visual studio.
 # Run
 ```
+mkdir c:\dump\
 .\Detours\bin.X86\withdll.exe /d:debug\dsoundhook.dll "C:\Users\$env:UserName\AppData\Roaming\Spotify\Spotify.exe"
 ```
