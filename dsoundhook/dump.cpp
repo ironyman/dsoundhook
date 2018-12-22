@@ -114,23 +114,27 @@ static LPTSTR GetCurrentSong()
 	return text;
 }
 
-static void WriteDataChunk(LPTSTR dumpPath)
+static void WriteInitialDataChunk(LPTSTR dumpPath)
 {
 	void *chunkBuf = malloc(sizeof(WavDataChunk));
 	WavDataChunk *chunk = reinterpret_cast<WavDataChunk *>(chunkBuf);
 	memcpy(chunk->sGroupID, "data", 4);
 	chunk->dwChunkSize = 0;
 
-	HANDLE hFile;
-	DWORD written;
+	HANDLE hFile{ INVALID_HANDLE_VALUE };
+	DWORD written{ 0 };
 
-	hFile = CreateFile(dumpPath, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
+	do
 	{
-		std::cerr << "Failed to open file. " << GetLastError() << "\n";
-		MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
-		exit(-12);
-	}
+		hFile = CreateFile(dumpPath, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile == INVALID_HANDLE_VALUE && GetLastError() != ERROR_SHARING_VIOLATION)
+		{
+			std::cerr << "Failed to open file. " << GetLastError() << "\n";
+			MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
+			exit(-12);
+		}
+		Sleep(500);
+	} while (hFile == INVALID_HANDLE_VALUE);
 
 	WriteFile(hFile, reinterpret_cast<LPCVOID>(chunk), sizeof(WavDataChunk), &written, NULL);
 	if (written != sizeof(WavDataChunk))
@@ -301,7 +305,7 @@ void DumpSong(LPVOID buf, DWORD size)
 	if (!PathFileExists(dumpPath))
 	{
 		WriteHeader(dumpPath);
-		WriteDataChunk(dumpPath);
+		WriteInitialDataChunk(dumpPath);
 	}
 
 	AppendDataChunk(dumpPath, buf, size);
