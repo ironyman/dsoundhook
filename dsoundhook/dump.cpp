@@ -123,23 +123,33 @@ static void WriteInitialDataChunk(LPTSTR dumpPath)
 
 	HANDLE hFile{ INVALID_HANDLE_VALUE };
 	DWORD written{ 0 };
-
+	INT failCount{ 0 };
 	do
 	{
 		hFile = CreateFile(dumpPath, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile == INVALID_HANDLE_VALUE && GetLastError() != ERROR_SHARING_VIOLATION)
+		if (hFile == INVALID_HANDLE_VALUE)
 		{
-			std::cerr << "Failed to open file. " << GetLastError() << "\n";
-			MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
-			exit(-12);
+			if (GetLastError() != ERROR_SHARING_VIOLATION)
+			{
+				std::cerr << "Failed to open file in " << __FUNCTION__ << ": 0x" << GetLastError() << "\n";
+				MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
+				exit(-12);
+			}
+			if (++failCount == 10)
+			{
+				std::cerr << "Failed to open file in " << __FUNCTION__ << ": 0x" << GetLastError() << "\n";
+				MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
+				exit(-12);
+			}
+			Sleep(500);
 		}
-		Sleep(500);
-	} while (hFile == INVALID_HANDLE_VALUE);
+	}
+	while (hFile == INVALID_HANDLE_VALUE);
 
 	WriteFile(hFile, reinterpret_cast<LPCVOID>(chunk), sizeof(WavDataChunk), &written, NULL);
 	if (written != sizeof(WavDataChunk))
 	{
-		std::cerr << "Failed write data chunk header. " << GetLastError() << "\n";
+		std::cerr << "Failed write data chunk header. 0x" << GetLastError() << "\n";
 		MessageBox(nullptr, L"Failed write data chunk header.", L"Hook", MB_ICONSTOP);
 		exit(-13);
 	}
@@ -152,14 +162,28 @@ static void AppendDataChunk(LPTSTR dumpPath, LPVOID buf, DWORD size)
 {
 	HANDLE hFile;
 	DWORD written;
+	INT failCount{ 0 };
 
-	hFile = CreateFile(dumpPath, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
+	do
 	{
-		std::cerr << "Failed open file. " << GetLastError() << "\n";
-		MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
-		exit(-12);
-	}
+		hFile = CreateFile(dumpPath, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile == INVALID_HANDLE_VALUE)
+		{
+			if (GetLastError() != ERROR_SHARING_VIOLATION)
+			{
+				std::cerr << "Failed to open file in " << __FUNCTION__ << ": 0x" << GetLastError() << "\n";
+				MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
+				exit(-12);
+			}
+			if (++failCount == 10)
+			{
+				std::cerr << "Failed to open file in " << __FUNCTION__ << ": 0x" << GetLastError() << "\n";
+				MessageBox(nullptr, L"Failed open file.", L"Hook", MB_ICONSTOP);
+				exit(-12);
+			}
+			Sleep(500);
+		}
+	} while (hFile == INVALID_HANDLE_VALUE);
 
 	WriteFile(hFile, buf, size, &written, NULL);
 	if (written != size)
@@ -199,7 +223,7 @@ static void WriteHeader(LPTSTR dumpPath)
 	hFile = CreateFile(dumpPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
-		std::cerr << "Failed open file. " << GetLastError() << "\n";
+		std::cerr << "Failed to open file in " << __FUNCTION__ << ": 0x" << GetLastError() << "\n";
 		MessageBox(nullptr, L"Failed open new file.", L"Hook", MB_ICONSTOP);
 		exit(-12);
 	}
