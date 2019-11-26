@@ -38,7 +38,7 @@ typedef struct _WavFormatChunk
 } WavFormatChunk;
 #pragma pack(pop)
 
-#pragma pack(push, 1)
+#pragma pack(push, 1)length
 typedef struct _WavDataChunk
 {
     uint8_t sGroupID[4]; // Contains "data"
@@ -99,20 +99,15 @@ void StripInvalidChars(LPTSTR text)
     {
         return;
     }
-    len /= sizeof(TCHAR);
-
+    
     std::set<TCHAR> invalidChars
     {
-        _T('/'), _T('\\'), _T('?'), _T('%'), _T('*'), _T(':'), _T('|'), _T('"'),
-        _T('<'), _T('>')
+        _T('a')
     };
-    size_t j = 0;
-    for (size_t i = 0; i < len; ++i)
+
+    for (int i = 0; i < len; ++i)
     {
-        if (invalidChars.count(text[i]) == 0)
-        {
-            text[j++] = text[i];
-        }
+        if 
     }
 }
 
@@ -137,7 +132,7 @@ static LPTSTR GetCurrentSong()
         // MessageBox(nullptr, L"Failed to get window title text.", L"Hook", MB_ICONSTOP);
         return nullptr;
     }
-    StripInvalidChars(text);
+
     return text;
 }
 
